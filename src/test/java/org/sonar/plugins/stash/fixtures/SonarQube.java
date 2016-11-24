@@ -38,7 +38,8 @@ public class SonarQube {
         return config.getProperty(HOST_PROPERTY);
     }
 
-    protected File getExecutable() {
+    // This  method searches for the proper control script and returns the commandline to use
+    protected String getExecutable(String action) {
         String os = System.getProperty("os.name");
         // In a windows context, we get more than we ask for (i.e. 'windows 7')
         if (os.toLowerCase().matches("windows.*")) {
@@ -51,22 +52,29 @@ public class SonarQube {
         if (arch.equals("amd64")) {
             arch = "x86-64";
         }
+
         String binary;
         if (os.equals("windows")) {
-            binary =  "StartSonar.bat";
+            if (action.equals("start")) {
+                binary = "StartSonar.bat";
+            } else if (action.equals("stop")) {
+                binary = "StopNTService.bat"; // tentative "stop" action (may require more than this one or another one)
+            } else {
+                binary = "unknown_action.cmd"; // this will make the code fail early
+            }
         } else {
-            binary =  "sonar.sh";
+            binary =  "sonar.sh " + action;
         }
 
-        System.out.println(installDir.resolve("bin").resolve(os + "-" + arch).resolve(binary).toString());
         File exec = installDir.resolve("bin").resolve(os + "-" + arch).resolve(binary).toFile();
+
         if (!exec.exists()) {
             throw new IllegalArgumentException();
         }
         if (!exec.canExecute()) {
             throw new IllegalArgumentException();
         }
-        return exec;
+        return exec.toString();
     }
 
     public void setUp() {
@@ -87,7 +95,7 @@ public class SonarQube {
 
     public void startAsync() throws Exception {
         writeConfig();
-        process = new ProcessBuilder(this.getExecutable().toString(), "start")
+        process = new ProcessBuilder(this.getExecutable("start"))
                 .directory(installDir.toFile())
                 .inheritIO()
                 .start();
@@ -97,7 +105,7 @@ public class SonarQube {
     }
 
     public void stop() throws Exception {
-        new ProcessBuilder(this.getExecutable().toString(), "stop")
+        new ProcessBuilder(this.getExecutable("stop"))
                 .directory(installDir.toFile())
                 .start().waitFor();
     }
