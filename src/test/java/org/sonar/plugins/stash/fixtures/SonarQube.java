@@ -40,7 +40,12 @@ public class SonarQube {
 
     protected File getExecutable() {
         String os = System.getProperty("os.name");
-        os = os.toLowerCase();
+        // In a windows context, we get more than we ask for (i.e. 'windows 7')
+        if (os.toLowerCase().matches("windows.*")) {
+            os = "windows";
+        } else {
+            os = os.toLowerCase();
+        }
 
         String arch = System.getProperty("os.arch");
         if (arch.equals("amd64")) {
@@ -48,11 +53,12 @@ public class SonarQube {
         }
         String binary;
         if (os.equals("windows")) {
-            binary =  "sonar.bat";
+            binary =  "StartSonar.bat";
         } else {
             binary =  "sonar.sh";
         }
 
+        System.out.println(installDir.resolve("bin").resolve(os + "-" + arch).resolve(binary).toString());
         File exec = installDir.resolve("bin").resolve(os + "-" + arch).resolve(binary).toFile();
         if (!exec.exists()) {
             throw new IllegalArgumentException();
