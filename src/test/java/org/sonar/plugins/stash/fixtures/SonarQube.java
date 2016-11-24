@@ -40,6 +40,7 @@ public class SonarQube {
 
     // This  method searches for the proper control script and returns the commandline to use
     protected String getExecutable(String action) {
+
         String os = System.getProperty("os.name");
         // In a windows context, we get more than we ask for (i.e. 'windows 7')
         if (os.toLowerCase().matches("windows.*")) {
@@ -55,15 +56,24 @@ public class SonarQube {
 
         String binary;
         if (os.equals("windows")) {
+
             if (action.equals("start")) {
-                binary = "StartSonar.bat";
+                binary = "StartNTService.bat";
+
             } else if (action.equals("stop")) {
-                binary = "StopNTService.bat"; // tentative "stop" action (may require more than this one or another one)
+                binary = "StopNTService.bat";
+
+            } else if (action.equals("prepare")) {
+                binary = "InstallNTService.bat";
+
+            } else if (action.equals("clean")) {
+                binary = "UninstallNTService.bat";
+
             } else {
                 binary = "unknown_action.cmd"; // this will make the code fail early
             }
         } else {
-            binary =  "sonar.sh " + action;
+            binary = "sonar.sh " + action;
         }
 
         File exec = installDir.resolve("bin").resolve(os + "-" + arch).resolve(binary).toFile();
@@ -75,6 +85,47 @@ public class SonarQube {
             throw new IllegalArgumentException();
         }
         return exec.toString();
+    }
+
+
+    // Centralizing code for the environment management
+    private void doEnv(String what) throws Exception {
+
+        String os = System.getProperty("os.name");
+
+        // Currently, only Windows requires preparation to have a service (to behave like the Linux process)
+        if ( os.toLowerCase().matches("windows.*") ) {
+
+            process = new ProcessBuilder(this.getExecutable(what))
+                    .directory(installDir.toFile())
+                    .inheritIO()
+                    .start();
+            if (process.waitFor() != 0) {
+                throw new Exception();
+            }
+        }
+    }
+
+    // Preparing the environment before starting the SonarQube instance for testing
+    public void prepareEnv() throws Exception {
+
+        try {
+            doEnv("prepare");
+
+        } catch (Exception e) {
+            throw new Exception(e);
+        }
+    }
+
+    // Cleaning-up any env modification done for this testing
+    public void cleanEnv() throws Exception {
+
+        try {
+            doEnv("clean");
+
+        } catch (Exception e) {
+            throw new Exception(e);
+        }
     }
 
     public void setUp() {

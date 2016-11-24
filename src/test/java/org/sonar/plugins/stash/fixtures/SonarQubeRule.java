@@ -12,7 +12,8 @@ public class SonarQubeRule implements TestRule {
 	}
 
 	public void start() throws Exception {
-	    sonarqube.startAsync();
+		sonarqube.prepareEnv();
+		sonarqube.startAsync();
 		sonarqube.waitForReady();
 	}
 
@@ -30,6 +31,7 @@ public class SonarQubeRule implements TestRule {
 					base.evaluate();
 				} finally {
 				    sonarqube.stop();
+                    sonarqube.cleanEnv();
 				}
 			}
 
